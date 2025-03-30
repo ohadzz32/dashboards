@@ -1,85 +1,64 @@
 import React, { useState, useEffect } from 'react';
-import { Container, CssBaseline, ThemeProvider, createTheme } from '@mui/material';
-import { DashboardParamsForm } from './components/DashboardParamsForm';
+import { Box, Tabs, Tab, Alert, Snackbar } from '@mui/material';
 import { DashboardView } from './components/DashboardView';
+import { StudentDashboardView } from './components/StudentDashboardView';
+import { DashboardData } from './types';
 import { api } from './services/api';
-import { DashboardData, DashboardParams } from './types';
 
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-  },
-});
+const App: React.FC = () => {
+  const [dashboardData, setDashboardData] = useState<DashboardData>({ altitude: 0, his: 0, adi: 0 ,_id:""});
+  const [activeTab, setActiveTab] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
-function App() {
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const initializeDashboard = async () => {
-      try {
-        // Delete existing dashboard data
-        await api.deleteDashboard();
-        // Create new dashboard with default values
-        const newData = await api.createDashboard({
-          altitude: 0,
-          his: 0,
-          adi: 0
-        });
-        setDashboardData(newData);
-      } catch (error) {
-        console.error('Error initializing dashboard:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initializeDashboard();
-  }, []);
-
-  const handleCreateDashboard = async (params: DashboardParams) => {
+  const fetchDashboardData = async () => {
     try {
-      const data = await api.createDashboard(params);
+      const data = await api.getDashboard();
       setDashboardData(data);
-    } catch (error) {
-      console.error('Error creating dashboard:', error);
+    } catch (err) {
+      setError('Failed to fetch dashboard data. Please try again.');
     }
   };
 
-  const handleAddData = async () => {
-    if (!dashboardData) return;
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
-    const newData = {
-      ...dashboardData,
-      altitude: Math.floor(Math.random() * 10000),
-      his: Math.floor(Math.random() * 360),
-      adi: Math.floor(Math.random() * 100)
-    };
-
+  const handleAddData = async (newData: DashboardData) => {
     try {
       const updatedData = await api.updateDashboard(newData);
       setDashboardData(updatedData);
-    } catch (error) {
-      console.error('Error updating dashboard:', error);
+      setError(null);
+    } catch (err) {
+      setError('Failed to update dashboard. Please try again.');
     }
   };
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+    setActiveTab(newValue);
+  };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Container>
-        {!dashboardData ? (
-          <DashboardParamsForm onSubmit={handleCreateDashboard} />
-        ) : (
-          <DashboardView data={dashboardData} onAddData={handleAddData} />
-        )}
-      </Container>
-    </ThemeProvider>
+    <Box sx={{ width: '100%', p: 3 }}>
+
+
+      {activeTab === 0 ? (
+        <DashboardView data={dashboardData} onAddData={handleAddData} />
+      ) : (
+        <StudentDashboardView data={dashboardData} onAddData={handleAddData} />
+      )}
+
+      <Snackbar 
+        open={!!error} 
+        autoHideDuration={6000} 
+        onClose={() => setError(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
-}
+};
 
 export default App;

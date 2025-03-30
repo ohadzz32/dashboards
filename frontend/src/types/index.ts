@@ -1,8 +1,8 @@
 export interface DashboardData {
-  id?: string;
-  altitude: number;
-  his: number;
-  adi: number;
+  _id?: string;
+  altitude: number | string;
+  his: number | string;
+  adi: number | string;
 }
 
 export interface DashboardParams {
